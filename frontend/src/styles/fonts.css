@@ -1,0 +1,17 @@
+/* Geist Sans - variable weight (100-900) */
+@font-face {
+  font-family: 'Geist Sans';
+  src: url('/fonts/geist-sans/Geist-Variable.woff2') format('woff2-variations');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Geist Sans - variable weight (100-900) italic */
+@font-face {
+  font-family: 'Geist Sans';
+  src: url('/fonts/geist-sans/Geist-Italic[wght].woff2') format('woff2-variations');
+  font-weight: 100 900;
+  font-style: italic;
+  font-display: swap;
+}

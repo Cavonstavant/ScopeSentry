@@ -46,6 +46,7 @@
     "echarts": "^5.4.3",
     "echarts-wordcloud": "^2.1.0",
     "element-plus": "^2.4.3",
+    "geist": "^1.9.2",
     "lodash-es": "^4.17.21",
     "mitt": "^3.0.1",
     "monaco-editor": "^0.52.0",
