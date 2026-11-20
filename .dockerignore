@@ -1,0 +1,20 @@
+# Patterns are relative to the repo root. cmd/main/static and the frontend
+# sources are needed by the dockerfile and must not be ignored.
+.git
+.github
+.idea
+.cursor
+.env
+dist
+data
+docs/images
+frontend/node_modules
+frontend/dist
+frontend/dist-*
+# runtime state the server writes next to its binary
+config.yaml
+PLUGINKEY
+PASSWORD
+files
+images
+uploads
