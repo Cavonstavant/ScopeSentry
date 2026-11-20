@@ -41,11 +41,11 @@ const qrCodes = ref([
           <li>
             官网&安装&文档：
             <a
-              href="https://www.scope-sentry.top"
+              href="#"
               target="_blank"
               class="text-blue-500 hover:text-blue-700 cursor-pointer"
             >
-              https://www.scope-sentry.top
+              [removed]
             </a>
           </li>
           <li>
@@ -71,21 +71,21 @@ const qrCodes = ref([
           <li>
             插件市场：
             <a
-              href="https://plugin.scope-sentry.top/"
+              href="#"
               target="_blank"
               class="text-blue-500 hover:text-blue-700 cursor-pointer"
             >
-              https://plugin.scope-sentry.top/
+              [removed]
             </a>
           </li>
           <li>
             SecureFlow：
             <a
-              href="https://plugin.scope-sentry.top/"
+              href="#"
               target="_blank"
               class="text-blue-500 hover:text-blue-700 cursor-pointer"
             >
-              https://secureflow.scope-sentry.top
+              [removed]
             </a>
           </li>
         </ul>

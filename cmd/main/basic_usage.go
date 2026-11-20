@@ -98,8 +98,8 @@ func main() {
 			"example.com",
 			"google.com",
 			"github.com",
-			"scope-sentry.top",
-			"jgeai.site",
+			
+			
 		},
 		// 域名匹配器配置
 		DomainMatcher: &types.DomainMatcherConfig{

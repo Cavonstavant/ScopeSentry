@@ -591,7 +591,7 @@ export default {
     parentCategory: '归类',
     amount: '资产数量',
     visualGeneratorTip: '提示：您可以在',
-    visualGeneratorLink: 'https://plugin.scope-sentry.top/fingers',
+    visualGeneratorLink: '#',
     visualGeneratorAction: '快速生成指纹'
   },
   plugin: {

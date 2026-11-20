@@ -7,15 +7,10 @@
 package system
 
 import (
-	"encoding/json"
-	"github.com/Autumn-27/ScopeSentry/internal/constants"
-	"net/http"
-	"time"
-
 	"github.com/Autumn-27/ScopeSentry/internal/api/response"
+	"github.com/Autumn-27/ScopeSentry/internal/constants"
 	"github.com/Autumn-27/ScopeSentry/internal/database/redis"
 	"github.com/gin-gonic/gin"
-	"github.com/valyala/fasthttp"
 )
 
 type VersionResponse struct {
@@ -32,13 +27,6 @@ type VersionInfo struct {
 	Msg      string `json:"msg"`
 }
 
-type RemoteVersion struct {
-	Server    string `json:"server"`
-	ServerMsg string `json:"server_msg"`
-	Scan      string `json:"scan"`
-	ScanMsg   string `json:"scan_msg"`
-}
-
 // GetSystemVersion @Summary      获取系统及节点版本信息
 // @Description  获取 ScopeSentry 服务端及所有节点的当前版本信息
 // @Tags         System
@@ -51,57 +39,12 @@ type RemoteVersion struct {
 // @Failure      500  {object}  response.InternalServerErrorResponse
 // @Router       /system/version [get]
 func GetSystemVersion(c *gin.Context) {
-	var (
-		serverLVersion string
-		serverMsg      string
-		scanLVersion   string
-		scanMsg        string
-	)
-
-	client := &fasthttp.Client{
-		ReadTimeout: 10 * time.Second,
-	}
-
-	req := fasthttp.AcquireRequest()
-	resp := fasthttp.AcquireResponse()
-	defer fasthttp.ReleaseRequest(req)
-	defer fasthttp.ReleaseResponse(resp)
-
-	req.SetRequestURI("https://gitee.com/constL/scope-sentry/raw/main/version.json")
-	req.Header.SetMethod("GET")
-
-	err := client.Do(req, resp)
-	if err == nil && resp.StatusCode() == http.StatusOK {
-		var version RemoteVersion
-		if err := json.Unmarshal(resp.Body(), &version); err == nil {
-			serverLVersion = version.Server
-			serverMsg = version.ServerMsg
-			scanLVersion = version.Scan
-			scanMsg = version.ScanMsg
-		}
-	}
-
-	// 如果gitee失败，尝试从github获取
-	if serverLVersion == "" {
-		req.SetRequestURI("https://raw.githubusercontent.com/Autumn-27/ScopeSentry/main/version.json")
-		err = client.Do(req, resp)
-		if err == nil && resp.StatusCode() == http.StatusOK {
-			var version RemoteVersion
-			if err := json.Unmarshal(resp.Body(), &version); err == nil {
-				serverLVersion = version.Server
-				serverMsg = version.ServerMsg
-				scanLVersion = version.Scan
-				scanMsg = version.ScanMsg
-			}
-		}
-	}
-
 	resultList := []VersionInfo{
 		{
 			Name:     "ScopeSentry-Server",
 			CVersion: constants.Version,
-			LVersion: serverLVersion,
-			Msg:      serverMsg,
+			LVersion: "",
+			Msg:      "",
 		},
 	}
 
@@ -121,8 +64,8 @@ func GetSystemVersion(c *gin.Context) {
 		resultList = append(resultList, VersionInfo{
 			Name:     name,
 			CVersion: hashData["version"],
-			LVersion: scanLVersion,
-			Msg:      scanMsg,
+			LVersion: "",
+			Msg:      "",
 		})
 	}
 

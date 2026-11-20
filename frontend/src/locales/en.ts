@@ -596,7 +596,7 @@ export default {
     parentCategory: 'Parent Category',
     amount: 'Asset Quantity',
     visualGeneratorTip: 'Tip: You can perform visual fingerprint generation at',
-    visualGeneratorLink: 'https://plugin.scope-sentry.top/fingers',
+    visualGeneratorLink: '#',
     visualGeneratorAction: 'to quickly generate fingerprints'
   },
   plugin: {

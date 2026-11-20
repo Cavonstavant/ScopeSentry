@@ -13,11 +13,9 @@ import (
 	"io"
 	"io/ioutil"
 	"math/rand"
-	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/Autumn-27/ScopeSentry/internal/plugins"
@@ -31,7 +29,6 @@ import (
 	"github.com/Autumn-27/ScopeSentry/internal/repositories/plugin"
 	"github.com/Autumn-27/ScopeSentry/internal/services/node"
 	"github.com/gin-gonic/gin"
-	"github.com/valyala/fasthttp"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	mongoOptions "go.mongodb.org/mongo-driver/mongo/options"
@@ -527,115 +524,11 @@ type RemotePluginItem struct {
 
 // SearchRemotePlugins 搜索远程插件并对比已安装的插件
 func (s *service) SearchRemotePlugins(ctx *gin.Context) (map[string]interface{}, error) {
-	var installedPlugins []models.Plugin
-	var remotePlugins RemotePluginResponse
-	var installedErr, remoteErr error
-	var wg sync.WaitGroup
-
-	// 并发获取已安装的插件和远程插件
-	wg.Add(2)
-
-	// 获取已安装的插件
-	go func() {
-		defer wg.Done()
-		query := bson.M{}
-		opts := mongoOptions.Find()
-		installedPlugins, installedErr = s.repo.FindWithPagination(ctx, query, opts)
-	}()
-
-	// 获取远程插件
-	go func() {
-		defer wg.Done()
-		client := &fasthttp.Client{
-			ReadTimeout: 30 * time.Second,
-		}
-
-		req := fasthttp.AcquireRequest()
-		resp := fasthttp.AcquireResponse()
-		defer fasthttp.ReleaseRequest(req)
-		defer fasthttp.ReleaseResponse(resp)
-
-		req.SetRequestURI("https://api.scope-sentry.top/api/common/plugin/search")
-		req.Header.SetMethod("POST")
-		req.Header.SetContentType("application/json")
-
-		// 构建请求体
-		requestBody := map[string]interface{}{
-			"name":        "",
-			"priceStatus": 2,
-			"module":      "All",
-			"tags":        "",
-			"page":        1,
-			"size":        200,
-		}
-		bodyBytes, err := json.Marshal(requestBody)
-		if err != nil {
-			remoteErr = fmt.Errorf("failed to marshal request body: %w", err)
-			return
-		}
-		req.SetBody(bodyBytes)
-
-		err = client.Do(req, resp)
-		if err != nil {
-			remoteErr = fmt.Errorf("failed to request remote api: %w", err)
-			return
-		}
-
-		if resp.StatusCode() != http.StatusOK {
-			remoteErr = fmt.Errorf("remote api returned status code: %d", resp.StatusCode())
-			return
-		}
-
-		if err := json.Unmarshal(resp.Body(), &remotePlugins); err != nil {
-			remoteErr = fmt.Errorf("failed to unmarshal response: %w", err)
-			return
-		}
-	}()
-
-	wg.Wait()
-
-	// 检查错误
-	if installedErr != nil {
-		return nil, fmt.Errorf("failed to get installed plugins: %w", installedErr)
-	}
-	if remoteErr != nil {
-		return nil, fmt.Errorf("failed to get remote plugins: %w", remoteErr)
-	}
-
-	// 构建已安装插件的hash映射和version映射
-	installedHashMap := make(map[string]models.Plugin)
-	for _, plugin := range installedPlugins {
-		installedHashMap[plugin.Hash] = plugin
-	}
-
-	// 为远程插件添加安装状态和更新状态
-	resultPlugins := make([]RemotePluginItem, 0, len(remotePlugins.Data.Data))
-	for _, remotePlugin := range remotePlugins.Data.Data {
-		installedPlugin, isInstalled := installedHashMap[remotePlugin.Hash]
-
-		remotePlugin.IsInstalled = isInstalled
-
-		// 如果已安装，检查版本是否需要更新
-		if isInstalled {
-			// 只有当远程版本不为空且与已安装版本不同时，才需要更新
-			remoteVersion := strings.TrimSpace(remotePlugin.Version)
-			installedVersion := strings.TrimSpace(installedPlugin.Version)
-
-			if remoteVersion != "" && remoteVersion != installedVersion {
-				remotePlugin.NeedUpdate = true
-			} else {
-				remotePlugin.NeedUpdate = false
-			}
-		} else {
-			remotePlugin.NeedUpdate = false
-		}
-
-		resultPlugins = append(resultPlugins, remotePlugin)
-	}
-
+	// Remote plugin marketplace removed — returns empty result set.
+	// No outbound call is made to any external API.
 	return map[string]interface{}{
-		"total": remotePlugins.Data.Total,
-		"data":  resultPlugins,
+		"total": int64(0),
+		"data":  []RemotePluginItem{},
 	}, nil
 }
 
