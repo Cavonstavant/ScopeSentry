@@ -1,5 +1,4 @@
 import request from '@/axios'
-import axios from 'axios'
 import type { LogRespData, pluginData, RemotePluginResponse } from './types'
 import { commonRespData } from '../scommon/types'
 
@@ -132,41 +131,14 @@ export const getLocalPluginListApi = (): Promise<IResponse<pluginDataResponse>> 
 
 // 获取远程插件市场数据
 export const getRemotePluginMarketApi = (): Promise<any> => {
-  // 使用原生 axios 直接调用远程 API，避免添加 Authorization header
-  return axios
-    .post(
-      'https://api.scope-sentry.top/api/common/plugin/search',
-      {
-        name: '',
-        priceStatus: 2,
-        module: 'All',
-        tags: '',
-        page: 1,
-        size: 200
-      },
-      {
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      }
-    )
-    .then((res) => res.data)
+  // Remote plugin marketplace removed
+  return Promise.resolve({ data: { total: 0, data: [] } })
 }
 
 // 获取插件导出数据
-export const getPluginExportDataApi = (hash: string, token?: string): Promise<any> => {
-  // 使用原生 axios 直接调用远程 API
-  let url = `https://api.scope-sentry.top/api/common/plugin/export-data/${hash}`
-  if (token) {
-    url += `?token=${token}`
-  }
-  return axios
-    .get(url, {
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    })
-    .then((res) => res.data)
+export const getPluginExportDataApi = (_hash: string, _token?: string): Promise<any> => {
+  // Remote plugin export removed
+  return Promise.resolve(null)
 }
 
 // 导入插件

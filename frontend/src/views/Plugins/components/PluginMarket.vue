@@ -138,7 +138,7 @@ const filteredRemotePlugins = computed(() => {
 // 跳转到插件详情页
 const handleCardClick = (plugin: RemotePluginData) => {
   if (plugin.hash) {
-    window.open(`https://plugin.scope-sentry.top/plugin/${plugin.hash}`, '_blank')
+    window.open(`#`, '_blank')
   }
 }
 

@@ -279,7 +279,7 @@ const handleUpdate = async () => {
         <ElText class="mx-1" style="color: #409eff; font-size: 14px">
           {{ t('fingerprint.visualGeneratorTip') }}
           <a
-            href="https://plugin.scope-sentry.top/fingers"
+            href="#"
             target="_blank"
             style="color: #409eff; text-decoration: underline"
           >

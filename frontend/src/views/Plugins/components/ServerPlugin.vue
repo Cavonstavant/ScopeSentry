@@ -76,7 +76,7 @@ const taskColums = reactive<TableColumn[]>([
     formatter: (row, __: TableColumn, value: string) => {
       return (
         <a
-          href={`https://plugin.scope-sentry.top/plugin/${row.hash}`}
+          href={`#`}
           style="color: #409EFF; text-decoration: none;"
           target="_blank"
         >
