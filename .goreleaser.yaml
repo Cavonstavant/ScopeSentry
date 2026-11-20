@@ -24,18 +24,19 @@ builds:
 
 archives:
   - id: default
-    builds:
+    ids:
       - ScopeSentry
-    format: zip
+    formats:
+      - zip
     name_template: "ScopeSentry_{{ .Os }}_{{ .Arch }}"
 
 changelog:
   disable: true
 
 release:
-  github:
-    owner: Autumn-27
-    name: ScopeSentry
+  # No github owner/name: GoReleaser then releases to the repository of the
+  # "origin" remote, which actions/checkout points at the repository running
+  # the workflow, the same owner the GHCR image in release.yml is pushed under.
   name_template: "ScopeSentry {{.Version}}"
 
 dist: ./dist

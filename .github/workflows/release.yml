@@ -12,16 +12,17 @@ on:
         type: string
 
 env:
-  DOCKER_IMAGE: autumn27/scopesentry
   GO_VERSION: "1.24"
   NODE_VERSION: "20"
+  IMAGE_PLATFORMS: linux/amd64,linux/arm64
 
 jobs:
   release:
     name: Build & Publish
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: write # GitHub Release (GoReleaser)
+      packages: write # container image on GHCR
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -30,20 +31,31 @@ jobs:
 
       - name: Resolve version
         id: version
+        env:
+          INPUT_VERSION: ${{ github.event.inputs.version }}
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            RAW_TAG="${{ github.event.inputs.version }}"
+          if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
+            RAW_TAG="${INPUT_VERSION}"
           else
             RAW_TAG="${GITHUB_REF#refs/tags/}"
           fi
           RAW_TAG="${RAW_TAG#v}"
-          if [ -z "${RAW_TAG}" ]; then
-            echo "Invalid version" >&2
+          # X.Y.Z or X.Y.Z-prerelease: what the dockerfile's VERSION check accepts,
+          # minus "+build" metadata, which an image tag cannot contain. Checked
+          # here so a bad tag fails before anything is published.
+          semver_re='^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'
+          if [[ ! "${RAW_TAG}" =~ ${semver_re} ]]; then
+            echo "Invalid version '${RAW_TAG}': expected vX.Y.Z or vX.Y.Z-prerelease" >&2
             exit 1
           fi
           echo "tag=v${RAW_TAG}" >> "$GITHUB_OUTPUT"
           echo "semver=${RAW_TAG}" >> "$GITHUB_OUTPUT"
           echo "Releasing version: ${RAW_TAG}"
+
+      - name: Resolve image name
+        id: image
+        # GHCR repository names must be lowercase; the owner login may not be.
+        run: echo "name=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/scopesentry" >> "$GITHUB_OUTPUT"
 
       - name: Create tag (manual release)
         if: github.event_name == 'workflow_dispatch'
@@ -51,6 +63,49 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git tag -a "${{ steps.version.outputs.tag }}" -m "Release ${{ steps.version.outputs.tag }}"
+
+      # The frontend and Go stages of the dockerfile cross-compile on the runner;
+      # only the runtime stage's apt-get runs as the target platform, so arm64
+      # needs QEMU.
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # The multi-stage dockerfile builds the frontend and the binary itself, so
+      # this runs on the clean checkout, before the steps below modify
+      # cmd/main/static. It also runs before GoReleaser: a failed image build
+      # leaves no GitHub Release behind, and re-pushing the tags on a re-run is
+      # harmless.
+      - name: Build and push image
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: dockerfile
+          platforms: ${{ env.IMAGE_PLATFORMS }}
+          push: true
+          build-args: |
+            VERSION=${{ steps.version.outputs.semver }}
+          tags: |
+            ${{ steps.image.outputs.name }}:${{ steps.version.outputs.semver }}
+            ${{ steps.image.outputs.name }}:latest
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ steps.version.outputs.semver }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -88,50 +143,13 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Verify Linux binary for Docker
-        run: |
-          test -f dist/ScopeSentry_linux_amd64_v1/ScopeSentry || (
-            echo "Linux binary not found, dist contents:" >&2
-            find dist -type f >&2
-            exit 1
-          )
-
-      - name: Build Docker image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: dockerfile
-          push: false
-          load: true
-          tags: |
-            ${{ env.DOCKER_IMAGE }}:${{ steps.version.outputs.semver }}
-            ${{ env.DOCKER_IMAGE }}:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Push version tag
-        run: |
-          docker push "${{ env.DOCKER_IMAGE }}:${{ steps.version.outputs.semver }}"
-
-      - name: Push latest tag
-        run: |
-          docker push "${{ env.DOCKER_IMAGE }}:latest"
-
       - name: Release summary
         run: |
           {
             echo "## Release ${{ steps.version.outputs.tag }}"
             echo ""
             echo "- GitHub Release: https://github.com/${{ github.repository }}/releases/tag/${{ steps.version.outputs.tag }}"
-            echo "- Docker: \`${{ env.DOCKER_IMAGE }}:${{ steps.version.outputs.semver }}\`"
-            echo "- Docker (latest): \`${{ env.DOCKER_IMAGE }}:latest\`"
+            echo "- Image: \`${{ steps.image.outputs.name }}:${{ steps.version.outputs.semver }}\` (${{ env.IMAGE_PLATFORMS }})"
+            echo "- Image (latest): \`${{ steps.image.outputs.name }}:latest\`"
+            echo "- Digest: \`${{ steps.build.outputs.digest }}\`"
           } >> "$GITHUB_STEP_SUMMARY"
